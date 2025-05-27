@@ -1,0 +1,174 @@
+/* Estilos generales */
+:root {
+  --primary-color: #4285f4;
+  --primary-dark: #3367d6;
+  --error-color: #ea4335;
+  --success-color: #34a853;
+  --warning-color: #fbbc05;
+  --bg-color: #f8f9fa;
+  --text-color: #202124;
+  --border-color: #dadce0;
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  padding: 20px;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
+h3 {
+  margin: 20px 0 10px;
+  color: var(--primary-dark);
+}
+
+/* Controles */
+.controls {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background-color: #bdc1c6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#startButton {
+  background-color: var(--success-color);
+}
+
+#stopButton {
+  background-color: var(--error-color);
+}
+
+/* Estado */
+.status-container {
+  margin: 20px 0;
+  padding: 15px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  border-left: 4px solid var(--primary-color);
+}
+
+.status {
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.audio-level {
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.audio-level-bar {
+  height: 100%;
+  width: 0%;
+  background-color: var(--success-color);
+  transition: width 0.1s ease-out;
+}
+
+/* Contenedor de audio */
+.audio-container {
+  margin: 20px 0;
+}
+
+audio {
+  width: 100%;
+  margin: 10px 0;
+  border-radius: 20px;
+  background-color: #f1f3f4;
+}
+
+/* Panel de efectos */
+.effects-panel {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.effect-control {
+  margin: 15px 0;
+}
+
+effect-control label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+input[type="range"] {
+  width: 100%;
+  margin: 10px 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .container {
+    padding: 15px;
+  }
+  
+  h1 {
+    font-size: 24px;
+  }
+  
+  .controls {
+    flex-direction: column;
+  }
+  
+  button {
+    width: 100%;
+  }
+}

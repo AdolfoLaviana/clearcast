@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClearCast - Prueba de Micrófono</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>ClearCast - Prueba de Micrófono</h1>
+    
+    <div class="controls">
+      <button id="startButton">Iniciar Micrófono</button>
+      <button id="stopButton" disabled>Detener</button>
+      <button id="processButton" disabled>Procesar Audio</button>
+    </div>
+
+    <div class="status-container">
+      <div id="status" class="status">Presiona "Iniciar Micrófono" para comenzar</div>
+      <div id="audioLevel" class="audio-level">
+        <div class="audio-level-bar"></div>
+      </div>
+    </div>
+
+    <div class="audio-container">
+      <h3>Audio Grabado</h3>
+      <audio id="recordedAudio" controls></audio>
+      
+      <h3>Audio Procesado</h3>
+      <audio id="processedAudio" controls></audio>
+    </div>
+
+    <div class="effects-panel">
+      <h3>Efectos</h3>
+      
+      <div class="effect-control">
+        <label for="noiseReduction">Reducción de Ruido:</label>
+        <input type="range" id="noiseReduction" min="0" max="1" step="0.1" value="0.5">
+        <span id="noiseReductionValue">0.5</span>
+      </div>
+      
+      <div class="effect-control">
+        <label for="compression">Compresión:</label>
+        <input type="range" id="compression" min="1" max="20" step="0.1" value="4">
+        <span id="compressionValue">4:1</span>
+      </div>
+      
+      <div class="effect-control">
+        <label for="reverb">Reverb:</label>
+        <input type="range" id="reverb" min="0" max="1" step="0.1" value="0">
+        <span id="reverbValue">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cargar el módulo WebAssembly -->
+  <script type="module">
+    // Configuración para cargar el módulo WebAssembly
+    import init, { WasmAudioEngine } from './pkg/clearcast_core.js';
+    
+    // Hacer que el módulo esté disponible globalmente
+    window.WasmAudioEngine = WasmAudioEngine;
+    window.wasmInit = init;
+    
+    // Cargar el script principal de la aplicación
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'js/app.js';
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

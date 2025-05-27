@@ -1,23 +1,18 @@
 [target.wasm32-unknown-unknown]
 rustflags = [
-  # Enable LTO (Link Time Optimization)
-  "-C", "lto=thin",
-  
   # Optimize for size
-  "-C", "opt-level=z",
-  
-  # Enable link-time optimizations
-  "-C", "link-arg=-s", "-C", "link-arg=ERROR_ON_UNDEFINED_SYMBOLS=0",
+  "-C", "opt-level=s",
   
   # Strip debug info
   "-C", "debuginfo=0",
   
   # Use 1 codegen unit for better optimizations
-  "-C", "codegen-units=1",
-  
-  # Enable all target features for WebAssembly
-  "-C", "target-feature=+bulk-memory,+mutable-globals"
+  "-C", "codegen-units=1"
 ]
+
+[build]
+# Deshabilitar LTO para WebAssembly
+rustflags = ["-C", "embed-bitcode=no"]
 
 [profile.release]
 # Optimize for size

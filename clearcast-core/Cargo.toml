@@ -11,11 +11,19 @@ repository = "https://github.com/yourusername/clearcast"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["native"]
 # Native target (non-WASM)
 native = ["rustfft", "realfft"]
 # WASM target
-wasm = ["wasm-bindgen", "js-sys", "web-sys", "getrandom/js"]
+wasm = [
+    "wasm-bindgen",
+    "js-sys",
+    "web-sys/console",
+    "getrandom/js",
+    "console_error_panic_hook"
+]
+# Enable console logging in wasm
+console = ["console_log", "log/std"]
+# Enable benchmarking
 bench = []
 
 [dependencies]
@@ -34,7 +42,7 @@ rayon = { version = "1.8" }
 ndarray-parallel = { version = "0.5", default-features = false }
 
 # Random number generation
-rand = { version = "0.8", features = ["getrandom"], default-features = false }
+rand = { version = "0.8", default-features = false, features = ["getrandom"] }
 getrandom = { version = "0.2", features = ["js"], optional = true }
 
 # Error handling
@@ -45,11 +53,18 @@ futures = { version = "0.3", optional = true }
 
 # Logging
 log = { version = "0.4", features = ["std"], optional = true }
-console_error_panic_hook = { version = "0.1.7", optional = true }
 
+# WebAssembly specific dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = { version = "0.1.7", optional = true }
+console_log = { version = "1.0", optional = true }
+wee_alloc = { version = "0.4", optional = true }
+
+# Development dependencies
 [dev-dependencies]
 approx = "0.5"
 ndarray-stats = "0.5"
+rand = { version = "0.8", features = ["std"] }
 wasm-bindgen-test = { version = "0.3", default-features = false }
 float-cmp = "0.9.0"
 wasm-bindgen-futures = "0.4"
@@ -64,6 +79,7 @@ name = "benchmark"
 harness = false
 
 [profile.release]
-lto = true
-opt-level = 3
+# Optimize for size
+opt-level = 's'  # Optimize for size
+lto = false  # LTO no es compatible con wasm32-unknown-unknown
 codegen-units = 1

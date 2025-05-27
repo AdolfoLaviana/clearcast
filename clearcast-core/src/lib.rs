@@ -38,7 +38,21 @@ impl WasmAudioEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         // Initialize panic hook for better error messages in the browser
-        console_error_panic_hook::set_once();
+        #[cfg(feature = "console_error_panic_hook")]
+        {
+            use std::sync::Once;
+            static SET_HOOK: Once = Once::new();
+            SET_HOOK.call_once(|| {
+                console_error_panic_hook::set_once();
+            });
+        }
+        
+        // Initialize console logging if enabled
+        #[cfg(feature = "console_log")]
+        {
+            use log::Level;
+            console_log::init_with_level(Level::Debug).ok();
+        }
         
         WasmAudioEngine {
             engine: AudioEngine::new(),
@@ -58,7 +72,7 @@ impl WasmAudioEngine {
         })
     }
     
-    /// Process an audio buffer
+    /// Process an audio buffer with all enabled effects
     /// 
     /// # Arguments
     /// * `input` - A Float32Array containing the audio samples
@@ -67,9 +81,60 @@ impl WasmAudioEngine {
     /// A new Float32Array with the processed audio
     #[wasm_bindgen(js_name = processBuffer)]
     pub fn process_buffer(&self, input: &[f32]) -> Result<Vec<f32>, JsValue> {
-        self.engine
-            .process(input.to_vec())
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+        if input.is_empty() {
+            return Ok(Vec::new());
+        }
+        
+        // Convert input to Vec<f32> y asegurarse de que los valores estén en el rango [-1.0, 1.0]
+        let mut samples: Vec<f32> = input.iter()
+            .map(|&x| x.max(-1.0).min(1.0))
+            .collect();
+        
+        // Aplicar reducción de ruido si está habilitada (con parámetros conservadores)
+        if self.engine.noise_reduction_threshold > 0.0 {
+            let mut audio = ndarray::Array1::from_vec(samples);
+            if let Err(e) = self.engine.apply_noise_reduction(&mut audio) {
+                console_error(&format!("Noise reduction warning: {}", e));
+                // Continuar incluso si hay un error en la reducción de ruido
+            } else {
+                samples = audio.to_vec();
+            }
+        }
+        
+        // Aplicar normalización con un margen de seguridad
+        if self.engine.target_peak > 0.0 && self.engine.target_peak <= 1.0 {
+            let mut audio = ndarray::Array1::from_vec(samples);
+            if let Err(e) = self.engine.normalize_audio(&mut audio) {
+                console_error(&format!("Normalization warning: {}", e));
+                // Continuar incluso si hay un error en la normalización
+            } else {
+                samples = audio.to_vec();
+                
+                // Asegurarse de que no haya clipping después de la normalización
+                for sample in &mut samples {
+                    *sample = sample.max(-0.99).min(0.99);
+                }
+            }
+        }
+        
+        // Aplicar efectos si hay alguno
+        if !self.engine.effects.is_empty() {
+            if let Err(e) = self.engine.apply_effects(&mut samples) {
+                console_error(&format!("Effects processing warning: {}", e));
+                // Continuar incluso si hay un error en los efectos
+            }
+        }
+        
+        // Aplicar limitador de picos suave para evitar distorsión
+        // con un margen de seguridad del 5% para evitar el recorte
+        self.engine.apply_soft_limiter(&mut samples);
+        
+        // Asegurarse una vez más de que los valores estén en el rango [-1.0, 1.0]
+        for sample in &mut samples {
+            *sample = sample.max(-0.95).min(0.95);
+        }
+        
+        Ok(samples)
     }
     
     /// Apply compression to an audio buffer
@@ -92,17 +157,58 @@ impl WasmAudioEngine {
         attack_ms: f32,
         release_ms: f32,
     ) -> Result<Vec<f32>, JsValue> {
-        let sample_rate = 44100.0; // Default sample rate, can be made configurable
-        let output = filters::compress_rms(input, threshold, ratio, attack_ms, release_ms, sample_rate);
+        use crate::filters::compressor::Compressor;
+        
+        // Validate input parameters
+        let threshold = threshold.clamp(-60.0, 0.0);
+        let ratio = ratio.max(1.0);
+        let attack_ms = attack_ms.max(0.1).min(100.0);
+        let release_ms = release_ms.max(5.0).min(2000.0);
+        
+        // Create a new compressor with the specified parameters
+        let sample_rate = 44100.0; // Default sample rate
+        let mut compressor = Compressor::new(
+            threshold,
+            ratio,
+            attack_ms / 1000.0, // Convert to seconds
+            release_ms / 1000.0, // Convert to seconds
+            sample_rate,
+        );
+        
+        // Process the audio
+        let mut output = Vec::with_capacity(input.len());
+        for &sample in input {
+            output.push(compressor.process(sample));
+        }
+        
         Ok(output)
     }
 }
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
-#[cfg(feature = "wasm")]
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+#[cfg(all(feature = "wasm", feature = "wee_alloc"))]
+mod wasm_alloc {
+    use wasm_bindgen::prelude::*;
+    
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = console)]
+        fn log(s: &str);
+    }
+
+    #[global_allocator]
+    static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+    
+    #[wasm_bindgen(start)]
+    pub fn init() {
+        // Inicializar el logger
+        console_log::init_with_level(log::Level::Debug).unwrap();
+        log::info!("Wee allocator initialized");
+    }
+}
+
+#[cfg(all(feature = "wasm", feature = "wee_alloc"))]
+use wasm_alloc::init as init_wasm_alloc;
 
 #[cfg(test)]
 mod tests {
