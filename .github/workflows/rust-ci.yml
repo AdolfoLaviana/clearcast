@@ -111,25 +111,6 @@ jobs:
           release-type: rust
           package-name: clearcast-core
           path: clearcast-core
-          bump-minor-pre-major: true
-          bump-patch-for-minor-pre-major: true
-          commit-message: 'chore: release ${version}'
-          pull-request-title: 'chore: release ${version}'
-          include-component-in-tag: false
-          include-v-in-tag: true
-          changelog-types: |
-            [
-              {"type":"feat", "section":"Features"},
-              {"type":"fix", "section":"Bug Fixes"},
-              {"type":"perf", "section":"Performance Improvements"},
-              {"type":"revert", "section":"Reverts"},
-              {"type":"docs", "section":"Documentation"},
-              {"type":"style", "section":"Styles"},
-              {"type":"chore", "section":"Miscellaneous Chores"},
-              {"type":"refactor", "section":"Code Refactoring"},
-              {"type":"test", "section":"Tests"},
-              {"type":"build", "section":"Build System"}
-            ]
           # Solo crear releases desde main
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
