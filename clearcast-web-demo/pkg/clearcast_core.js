@@ -1,5 +1,11 @@
 let wasm;
 
+const heap = new Array(128).fill(undefined);
+
+heap.push(undefined, null, true, false);
+
+function getObject(idx) { return heap[idx]; }
+
 const cachedTextDecoder = (typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true, fatal: true }) : { decode: () => { throw Error('TextDecoder not available') } } );
 
 if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
@@ -16,6 +22,17 @@ function getUint8ArrayMemory0() {
 function getStringFromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
+}
+
+let heap_next = heap.length;
+
+function addHeapObject(obj) {
+    if (heap_next === heap.length) heap.push(heap.length + 1);
+    const idx = heap_next;
+    heap_next = heap[idx];
+
+    heap[idx] = obj;
+    return idx;
 }
 
 let WASM_VECTOR_LEN = 0;
@@ -83,10 +100,16 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
-function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_export_3.get(idx);
-    wasm.__externref_table_dealloc(idx);
-    return value;
+function dropObject(idx) {
+    if (idx < 132) return;
+    heap[idx] = heap_next;
+    heap_next = idx;
+}
+
+function takeObject(idx) {
+    const ret = getObject(idx);
+    dropObject(idx);
+    return ret;
 }
 
 let cachedFloat32ArrayMemory0 = null;
@@ -157,14 +180,22 @@ export class WasmAudioEngine {
      * @returns {WasmAudioEngine}
      */
     static withSettings(noise_threshold, target_level) {
-        const ret = wasm.wasmaudioengine_withSettings(noise_threshold, target_level);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasmaudioengine_withSettings(retptr, noise_threshold, target_level);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return WasmAudioEngine.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
         }
-        return WasmAudioEngine.__wrap(ret[0]);
     }
     /**
-     * Process an audio buffer
+     * Process an audio buffer with all enabled effects
      *
      * # Arguments
      * * `input` - A Float32Array containing the audio samples
@@ -175,25 +206,37 @@ export class WasmAudioEngine {
      * @returns {Float32Array}
      */
     processBuffer(input) {
-        const ptr0 = passArrayF32ToWasm0(input, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmaudioengine_processBuffer(this.__wbg_ptr, ptr0, len0);
-        if (ret[3]) {
-            throw takeFromExternrefTable0(ret[2]);
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArrayF32ToWasm0(input, wasm.__wbindgen_export_1);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.wasmaudioengine_processBuffer(retptr, this.__wbg_ptr, ptr0, len0);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeObject(r2);
+            }
+            var v2 = getArrayF32FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export_0(r0, r1 * 4, 4);
+            return v2;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
         }
-        var v2 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
-        return v2;
     }
     /**
-     * Apply compression to an audio buffer
+     * Apply gentle compression to an audio buffer
+     *
+     * This function applies RMS compression to control the dynamic range of the audio.
+     * It helps maintain a consistent volume level and prevents clipping.
      *
      * # Arguments
      * * `input` - A Float32Array containing the audio samples
-     * * `threshold` - Compression threshold in dBFS (0 to -60)
-     * * `ratio` - Compression ratio (e.g., 4.0 for 4:1)
+     * * `threshold` - Compression threshold in dBFS (-60 to 0)
+     * * `ratio` - Compression ratio (1.0 to 20.0)
      * * `attack_ms` - Attack time in milliseconds (1.0 to 100.0)
-     * * `release_ms` - Release time in milliseconds (10.0 to 1000.0)
+     * * `release_ms` - Release time in milliseconds (10.0 to 2000.0)
      *
      * # Returns
      * A new Float32Array with the compressed audio
@@ -205,15 +248,24 @@ export class WasmAudioEngine {
      * @returns {Float32Array}
      */
     compress(input, threshold, ratio, attack_ms, release_ms) {
-        const ptr0 = passArrayF32ToWasm0(input, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmaudioengine_compress(this.__wbg_ptr, ptr0, len0, threshold, ratio, attack_ms, release_ms);
-        if (ret[3]) {
-            throw takeFromExternrefTable0(ret[2]);
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArrayF32ToWasm0(input, wasm.__wbindgen_export_1);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.wasmaudioengine_compress(retptr, this.__wbg_ptr, ptr0, len0, threshold, ratio, attack_ms, release_ms);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeObject(r2);
+            }
+            var v2 = getArrayF32FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export_0(r0, r1 * 4, 4);
+            return v2;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
         }
-        var v2 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
-        return v2;
     }
 }
 
@@ -251,11 +303,8 @@ async function __wbg_load(module, imports) {
 function __wbg_get_imports() {
     const imports = {};
     imports.wbg = {};
-    imports.wbg.__wbg_debug_3cb59063b29f58c1 = function(arg0) {
-        console.debug(arg0);
-    };
     imports.wbg.__wbg_error_524f506f44df1645 = function(arg0) {
-        console.error(arg0);
+        console.error(getObject(arg0));
     };
     imports.wbg.__wbg_error_7534b8e9a36f1ab4 = function(arg0, arg1) {
         let deferred0_0;
@@ -265,42 +314,26 @@ function __wbg_get_imports() {
             deferred0_1 = arg1;
             console.error(getStringFromWasm0(arg0, arg1));
         } finally {
-            wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
+            wasm.__wbindgen_export_0(deferred0_0, deferred0_1, 1);
         }
-    };
-    imports.wbg.__wbg_info_3daf2e093e091b66 = function(arg0) {
-        console.info(arg0);
-    };
-    imports.wbg.__wbg_log_c222819a41e063d3 = function(arg0) {
-        console.log(arg0);
     };
     imports.wbg.__wbg_new_8a6f238a6ece86ea = function() {
         const ret = new Error();
-        return ret;
+        return addHeapObject(ret);
     };
     imports.wbg.__wbg_stack_0ed75d68575b0f3c = function(arg0, arg1) {
-        const ret = arg1.stack;
-        const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ret = getObject(arg1).stack;
+        const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_export_1, wasm.__wbindgen_export_2);
         const len1 = WASM_VECTOR_LEN;
         getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
         getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
     };
-    imports.wbg.__wbg_warn_4ca3906c248c47c4 = function(arg0) {
-        console.warn(arg0);
-    };
-    imports.wbg.__wbindgen_init_externref_table = function() {
-        const table = wasm.__wbindgen_export_3;
-        const offset = table.grow(4);
-        table.set(0, undefined);
-        table.set(offset + 0, undefined);
-        table.set(offset + 1, null);
-        table.set(offset + 2, true);
-        table.set(offset + 3, false);
-        ;
+    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
+        takeObject(arg0);
     };
     imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
         const ret = getStringFromWasm0(arg0, arg1);
-        return ret;
+        return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_throw = function(arg0, arg1) {
         throw new Error(getStringFromWasm0(arg0, arg1));
@@ -321,7 +354,7 @@ function __wbg_finalize_init(instance, module) {
     cachedUint8ArrayMemory0 = null;
 
 
-    wasm.__wbindgen_start();
+
     return wasm;
 }
 

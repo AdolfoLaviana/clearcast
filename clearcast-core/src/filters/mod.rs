@@ -1,6 +1,6 @@
 //! Audio filters for ClearCast
 
-mod compressor;
+pub mod compressor;
 
 pub use compressor::compress_rms;
 

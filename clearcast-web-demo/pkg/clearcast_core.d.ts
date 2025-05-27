@@ -18,7 +18,7 @@ export class WasmAudioEngine {
    */
   static withSettings(noise_threshold: number, target_level: number): WasmAudioEngine;
   /**
-   * Process an audio buffer
+   * Process an audio buffer with all enabled effects
    * 
    * # Arguments
    * * `input` - A Float32Array containing the audio samples
@@ -28,14 +28,17 @@ export class WasmAudioEngine {
    */
   processBuffer(input: Float32Array): Float32Array;
   /**
-   * Apply compression to an audio buffer
+   * Apply gentle compression to an audio buffer
+   * 
+   * This function applies RMS compression to control the dynamic range of the audio.
+   * It helps maintain a consistent volume level and prevents clipping.
    * 
    * # Arguments
    * * `input` - A Float32Array containing the audio samples
-   * * `threshold` - Compression threshold in dBFS (0 to -60)
-   * * `ratio` - Compression ratio (e.g., 4.0 for 4:1)
+   * * `threshold` - Compression threshold in dBFS (-60 to 0)
+   * * `ratio` - Compression ratio (1.0 to 20.0)
    * * `attack_ms` - Attack time in milliseconds (1.0 to 100.0)
-   * * `release_ms` - Release time in milliseconds (10.0 to 1000.0)
+   * * `release_ms` - Release time in milliseconds (10.0 to 2000.0)
    * 
    * # Returns
    * A new Float32Array with the compressed audio
@@ -49,15 +52,13 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmaudioengine_free: (a: number, b: number) => void;
   readonly wasmaudioengine_new: () => number;
-  readonly wasmaudioengine_withSettings: (a: number, b: number) => [number, number, number];
-  readonly wasmaudioengine_processBuffer: (a: number, b: number, c: number) => [number, number, number, number];
-  readonly wasmaudioengine_compress: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
-  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-  readonly __wbindgen_malloc: (a: number, b: number) => number;
-  readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbindgen_export_3: WebAssembly.Table;
-  readonly __externref_table_dealloc: (a: number) => void;
-  readonly __wbindgen_start: () => void;
+  readonly wasmaudioengine_withSettings: (a: number, b: number, c: number) => void;
+  readonly wasmaudioengine_processBuffer: (a: number, b: number, c: number, d: number) => void;
+  readonly wasmaudioengine_compress: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
+  readonly __wbindgen_export_0: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_export_1: (a: number, b: number) => number;
+  readonly __wbindgen_export_2: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

@@ -1,0 +1,15 @@
+{
+  "name": "clearcast-web-demo",
+  "version": "0.1.0",
+  "description": "Web demo for ClearCast audio processing",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server -p 8080",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}

@@ -135,13 +135,13 @@ impl Default for LimiterConfig {
 /// Main audio processing engine
 pub struct AudioEngine {
     /// Threshold for noise reduction (0.0 to 1.0, higher means more aggressive noise reduction)
-    noise_reduction_threshold: f32,
+    pub noise_reduction_threshold: f32,
     /// Target peak amplitude for normalization (0.0 to 1.0)
-    target_peak: f32,
+    pub target_peak: f32,
     /// Configuration for the soft limiter
-    limiter: LimiterConfig,
+    pub limiter: LimiterConfig,
     /// List of audio effects to apply
-    effects: Vec<Arc<Mutex<dyn AudioEffect + Send + 'static>>>,
+    pub effects: Vec<Arc<Mutex<dyn AudioEffect + Send + 'static>>>,
 }
 
 impl Default for AudioEngine {
@@ -232,7 +232,7 @@ impl AudioEngine {
     }
     
     /// Apply all registered audio effects to the buffer
-    fn apply_effects(&self, buffer: &mut [f32]) -> Result<(), AudioProcessingError> {
+    pub fn apply_effects(&self, buffer: &mut [f32]) -> Result<(), AudioProcessingError> {
         if self.effects.is_empty() {
             return Ok(());
         }
@@ -253,7 +253,7 @@ impl AudioEngine {
     }
 
     /// Apply noise reduction to the audio data
-    fn apply_noise_reduction(&self, audio: &mut Array1<f32>) -> Result<(), AudioProcessingError> {
+    pub fn apply_noise_reduction(&self, audio: &mut Array1<f32>) -> Result<(), AudioProcessingError> {
         if audio.is_empty() {
             return Err(AudioProcessingError::EmptyBuffer);
         }
@@ -279,7 +279,7 @@ impl AudioEngine {
 
 
     /// Apply soft limiting to audio samples
-    fn apply_soft_limiter(&self, samples: &mut [f32]) {
+    pub fn apply_soft_limiter(&self, samples: &mut [f32]) {
         let limiter = self.limiter;
         let threshold = limiter.threshold;
         let knee_width = limiter.knee_width;
@@ -322,7 +322,7 @@ impl AudioEngine {
     }
     
     /// Normalize audio to the target peak amplitude
-    fn normalize_audio(&self, audio: &mut Array1<f32>) -> Result<(), AudioProcessingError> {
+    pub fn normalize_audio(&self, audio: &mut Array1<f32>) -> Result<(), AudioProcessingError> {
         if audio.is_empty() {
             return Err(AudioProcessingError::EmptyBuffer);
         }

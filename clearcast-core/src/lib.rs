@@ -24,6 +24,12 @@ pub mod effects;
 pub use engine::{AudioEngine, AudioProcessingError};
 pub use effects::{AudioEffect, Delay};
 
+// Función auxiliar para registrar errores en la consola de JavaScript
+#[cfg(feature = "wasm")]
+fn console_error(msg: &str) {
+    web_sys::console::error_1(&wasm_bindgen::JsValue::from_str(msg));
+}
+
 /// WebAssembly bindings for ClearCast core functionality
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
@@ -92,7 +98,7 @@ impl WasmAudioEngine {
         
         // Aplicar reducción de ruido si está habilitada (con parámetros conservadores)
         if self.engine.noise_reduction_threshold > 0.0 {
-            let mut audio = ndarray::Array1::from_vec(samples);
+            let mut audio = ndarray::Array1::from_vec(samples.clone());
             if let Err(e) = self.engine.apply_noise_reduction(&mut audio) {
                 console_error(&format!("Noise reduction warning: {}", e));
                 // Continuar incluso si hay un error en la reducción de ruido
@@ -103,7 +109,7 @@ impl WasmAudioEngine {
         
         // Aplicar normalización con un margen de seguridad
         if self.engine.target_peak > 0.0 && self.engine.target_peak <= 1.0 {
-            let mut audio = ndarray::Array1::from_vec(samples);
+            let mut audio = ndarray::Array1::from_vec(samples.clone());
             if let Err(e) = self.engine.normalize_audio(&mut audio) {
                 console_error(&format!("Normalization warning: {}", e));
                 // Continuar incluso si hay un error en la normalización
@@ -137,14 +143,17 @@ impl WasmAudioEngine {
         Ok(samples)
     }
     
-    /// Apply compression to an audio buffer
+    /// Apply gentle compression to an audio buffer
+    /// 
+    /// This function applies RMS compression to control the dynamic range of the audio.
+    /// It helps maintain a consistent volume level and prevents clipping.
     /// 
     /// # Arguments
     /// * `input` - A Float32Array containing the audio samples
-    /// * `threshold` - Compression threshold in dBFS (0 to -60)
-    /// * `ratio` - Compression ratio (e.g., 4.0 for 4:1)
+    /// * `threshold` - Compression threshold in dBFS (-60 to 0)
+    /// * `ratio` - Compression ratio (1.0 to 20.0)
     /// * `attack_ms` - Attack time in milliseconds (1.0 to 100.0)
-    /// * `release_ms` - Release time in milliseconds (10.0 to 1000.0)
+    /// * `release_ms` - Release time in milliseconds (10.0 to 2000.0)
     /// 
     /// # Returns
     /// A new Float32Array with the compressed audio
@@ -157,29 +166,31 @@ impl WasmAudioEngine {
         attack_ms: f32,
         release_ms: f32,
     ) -> Result<Vec<f32>, JsValue> {
-        use crate::filters::compressor::Compressor;
+        use crate::filters::compress_rms;
         
-        // Validate input parameters
-        let threshold = threshold.clamp(-60.0, 0.0);
-        let ratio = ratio.max(1.0);
-        let attack_ms = attack_ms.max(0.1).min(100.0);
-        let release_ms = release_ms.max(5.0).min(2000.0);
+        // Validar y ajustar parámetros para una compresión más suave
+        let threshold = threshold.clamp(-30.0, 0.0); // Rango más estrecho para evitar compresión excesiva
+        let ratio = ratio.max(1.0).min(10.0); // Limitar ratio máximo a 10:1
+        let attack_ms = attack_ms.max(5.0).min(100.0); // Ataque mínimo de 5ms para evitar distorsión
+        let release_ms = release_ms.max(50.0).min(1000.0); // Release más largo para transiciones más suaves
         
-        // Create a new compressor with the specified parameters
-        let sample_rate = 44100.0; // Default sample rate
-        let mut compressor = Compressor::new(
+        // Frecuencia de muestreo estándar
+        let sample_rate = 44100.0;
+        
+        // Aplicar compresión RMS
+        let output = compress_rms(
+            input,
             threshold,
             ratio,
-            attack_ms / 1000.0, // Convert to seconds
-            release_ms / 1000.0, // Convert to seconds
-            sample_rate,
+            attack_ms,
+            release_ms,
+            sample_rate
         );
         
-        // Process the audio
-        let mut output = Vec::with_capacity(input.len());
-        for &sample in input {
-            output.push(compressor.process(sample));
-        }
+        // Asegurarse de que no haya clipping
+        let output = output.into_iter()
+            .map(|x| x.max(-0.95).min(0.95))
+            .collect::<Vec<f32>>();
         
         Ok(output)
     }

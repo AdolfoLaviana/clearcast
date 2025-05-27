@@ -6,6 +6,12 @@ authors = ["Your Name <your.email@example.com>"]
 description = "Core audio processing library for ClearCast"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/yourusername/clearcast"
+keywords = ["audio", "noise-reduction", "wasm"]
+categories = ["wasm"]
+readme = "README.md"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -13,18 +19,24 @@ crate-type = ["cdylib", "rlib"]
 [features]
 # Native target (non-WASM)
 native = ["rustfft", "realfft"]
+
 # WASM target
 wasm = [
-    "wasm-bindgen",
-    "js-sys",
-    "web-sys/console",
+    "dep:wasm-bindgen",
+    "dep:js-sys",
+    "dep:web-sys",
     "getrandom/js",
     "console_error_panic_hook"
 ]
+
 # Enable console logging in wasm
 console = ["console_log", "log/std"]
+
 # Enable benchmarking
 bench = []
+
+# Default features
+default = []
 
 [dependencies]
 # WebAssembly dependencies
@@ -37,7 +49,7 @@ rustfft = { version = "6.2", default-features = false, optional = true }
 realfft = { version = "3.4.0", default-features = false, optional = true }
 
 # Data structures
-ndarray = { version = "0.15", features = ["approx"], default-features = false }
+ndarray = { version = "0.15", features = ["approx", "std"], default-features = false }
 rayon = { version = "1.8" }
 ndarray-parallel = { version = "0.5", default-features = false }
 
