@@ -49,11 +49,6 @@ jobs:
         brew install wasm-pack
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Install wasm-pack (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install wasm-pack
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -82,6 +77,8 @@ jobs:
           cargo build --release --target wasm32-unknown-unknown --features wasm
           # Then use wasm-pack to package it
           wasm-pack build --target web --release
+        elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cargo build --release --target ${{ matrix.target }}
         else
           cargo build --release --target ${{ matrix.target }}
         fi
