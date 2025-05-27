@@ -1,0 +1,96 @@
+# Archivos generados por Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Archivos generados por wasm-pack
+/clearcast-core/pkg/
+/clearcast-core/target/
+
+# Archivos generados por Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.pnp/
+.pnp.js
+
+# Archivos de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de IDE y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Archivos de compilación de WebAssembly
+/clearcast-core/out/
+/clearcast-core/wasm-pack.log
+
+# Archivos de depuración
+*.log
+
+# Archivos temporales
+/tmp/
+temp/
+
+# Archivos de audio de prueba
+test_audio_*
+*.wav
+*.mp3
+*.ogg
+
+# Directorio de salida de la demo web
+/clearcast-web-demo/dist/
+/clearcast-web-demo/build/
+
+# Archivos de configuración local
+*.local
+
+# Archivos de cobertura
+target/debug/coverage/
+*.profraw
+
+# Archivos de wasm-bindgen
+/clearcast-core/.wasm-bindgen/
+
+# Archivos de caché de Rust
+.rustc/
+.rustup/
+
+# Archivos generados por el IDE de Rust
+.idea/
+*.iml
+
+# Archivos de configuración de VS Code
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/*.code-workspace
+
+# Archivos de configuración de Rust
+rust-toolchain
+rust-toolchain.toml
+
+# Archivos de configuración de wasm-pack
+.wasm-pack/
+
+# Archivos de configuración de wasm-bindgen
+wasm-bindgen-debug.log
+
+# Archivos de configuración de npm/yarn
+package-lock.json
+yarn.lock
+
+# Archivos de configuración de TypeScript (si se usa)
+*.tsbuildinfo
