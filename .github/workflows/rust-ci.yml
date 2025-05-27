@@ -79,9 +79,9 @@ jobs:
       run: |
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
           # First build with wasm-bindgen and the required features
-          cargo build --release --target wasm32-unknown-unknown --features wasm,js
+          cargo build --release --target wasm32-unknown-unknown --features wasm
           # Then use wasm-pack to package it
-          wasm-pack build --target web --release -- --features wasm,js
+          wasm-pack build --target web --release
         else
           cargo build --release --target ${{ matrix.target }}
         fi
