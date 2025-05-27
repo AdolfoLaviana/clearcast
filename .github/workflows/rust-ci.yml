@@ -78,7 +78,8 @@ jobs:
       working-directory: ./clearcast-core
       run: |
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          wasm-pack build --target web --release
+          # Build with wasm-bindgen and enable the 'js' feature for getrandom
+          RUSTFLAGS='--cfg=web_sys_unstable_apis' wasm-pack build --target web --release -- --features wasm,js
         else
           cargo build --release --target ${{ matrix.target }}
         fi
