@@ -1,0 +1,172 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    # Permitir ejecución manual
+  schedule:
+    # Ejecutar a medianoche UTC para revisar cambios diarios
+    - cron: '0 0 * * *'
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            rust: stable
+            target: wasm32-unknown-unknown
+            toolchain: wasm-pack
+          - os: windows-latest
+            rust: stable
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            rust: stable
+            target: x86_64-apple-darwin
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install wasm-pack (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | bash
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install wasm-pack (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install wasm-pack
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install wasm-pack (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install wasm-pack
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        target: ${{ matrix.target }}
+        override: true
+        profile: minimal
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+
+    - name: Build
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          wasm-pack build --target web --release
+        else
+          cargo build --release --target ${{ matrix.target }}
+        fi
+
+    - name: Run tests
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          cargo test --target wasm32-unknown-unknown --no-run
+          wasm-pack test --headless --firefox
+        else
+          cargo test --release
+        fi
+
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: rust
+          package-name: clearcast-core
+          # Solo crear releases desde main
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+          # Usar commits convencionales para determinar el tipo de versión
+          commit-message: 'chore: release ${version}'
+          pull-request-title: 'chore: release ${version}'
+          # Configuración específica de Rust
+          include-component-in-tag: false
+          include-v-in-tag: true
+          # Configuración del changelog
+          changelog-types: |
+            [
+              {"type":"feat", "section":"Features"},
+              {"type":"fix", "section":"Bug Fixes"},
+              {"type":"perf", "section":"Performance Improvements"},
+              {"type":"revert", "section":"Reverts"},
+              {"type":"docs", "section":"Documentation"},
+              {"type":"style", "section":"Styles"},
+              {"type":"chore", "section":"Miscellaneous Chores"},
+              {"type":"refactor", "section":"Code Refactoring"},
+              {"type":"test", "section":"Tests"},
+              {"type":"build", "section":"Build System"}
+            ]
+
+  create-release:
+    name: Create Release
+    needs: [build-and-test, release-please]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          name: clearcast
+          path: target/release/clearcast
+          release-tag: ${{ github.event.release.tag_name }}
+          
+      - name: Upload WASM package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./pkg/clearcast_core_bg.wasm
+          asset_name: clearcast_core_bg.wasm
+          asset_content_type: application/wasm
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: [build-and-test, release-please]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Publish to crates.io
+        run: |
+          cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          cargo publish --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

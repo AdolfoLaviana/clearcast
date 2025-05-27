@@ -1,0 +1,69 @@
+[package]
+name = "clearcast-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "Core audio processing library for ClearCast"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/clearcast"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["native"]
+# Native target (non-WASM)
+native = ["rustfft", "realfft"]
+# WASM target
+wasm = ["wasm-bindgen", "js-sys", "web-sys", "getrandom/js"]
+bench = []
+
+[dependencies]
+# WebAssembly dependencies
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", features = ["console"], optional = true }
+
+# Audio processing
+rustfft = { version = "6.2", default-features = false, optional = true }
+realfft = { version = "3.4.0", default-features = false, optional = true }
+
+# Data structures
+ndarray = { version = "0.15", features = ["approx"], default-features = false }
+rayon = { version = "1.8" }
+ndarray-parallel = { version = "0.5", default-features = false }
+
+# Random number generation
+rand = { version = "0.8", features = ["getrandom"], default-features = false }
+getrandom = { version = "0.2", features = ["js"], optional = true }
+
+# Error handling
+thiserror = "1.0"
+
+# Async
+futures = { version = "0.3", optional = true }
+
+# Logging
+log = { version = "0.4", features = ["std"], optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+[dev-dependencies]
+approx = "0.5"
+ndarray-stats = "0.5"
+wasm-bindgen-test = { version = "0.3", default-features = false }
+float-cmp = "0.9.0"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+
+[dev-dependencies.criterion]
+version = "0.5"
+features = ["html_reports"]
+
+[[bench]]
+name = "benchmark"
+harness = false
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1

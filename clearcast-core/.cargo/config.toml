@@ -1,0 +1,28 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+  # Enable LTO (Link Time Optimization)
+  "-C", "lto=thin",
+  
+  # Optimize for size
+  "-C", "opt-level=z",
+  
+  # Enable link-time optimizations
+  "-C", "link-arg=-s", "-C", "link-arg=ERROR_ON_UNDEFINED_SYMBOLS=0",
+  
+  # Strip debug info
+  "-C", "debuginfo=0",
+  
+  # Use 1 codegen unit for better optimizations
+  "-C", "codegen-units=1",
+  
+  # Enable all target features for WebAssembly
+  "-C", "target-feature=+bulk-memory,+mutable-globals"
+]
+
+[profile.release]
+# Optimize for size
+opt-level = 'z'  # Optimize for size
+lto = true       # Enable Link Time Optimization
+codegen-units = 1  # Better optimizations by compiling the crate as a single unit
+panic = 'abort'   # Reduce size by using abort on panic
+strip = true      # Strip symbols from binary (reduces size)

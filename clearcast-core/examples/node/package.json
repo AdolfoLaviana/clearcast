@@ -1,0 +1,17 @@
+{
+  "name": "clearcast-core-node-example",
+  "version": "1.0.0",
+  "description": "Node.js example for ClearCast Core",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-wasm-modules index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "wavefile": "^11.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

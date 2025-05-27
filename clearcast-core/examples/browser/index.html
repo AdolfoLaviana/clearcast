@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClearCast Core - Browser Example</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background-color: #45a049;
+    }
+    .audio-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    audio {
+      width: 100%;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .status.success {
+      background-color: #dff0d8;
+      color: #3c763d;
+    }
+    .status.error {
+      background-color: #f2dede;
+      color: #a94442;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ClearCast Core - Audio Processing Demo</h1>
+    
+    <div class="controls">
+      <input type="file" id="audioInput" accept="audio/*">
+      <button id="processButton" disabled>Process Audio</button>
+      <button id="playOriginal" disabled>Play Original</button>
+      <button id="playProcessed" disabled>Play Processed</button>
+    </div>
+
+    <div>
+      <h3>Original Audio</h3>
+      <audio id="originalAudio" controls></audio>
+    </div>
+
+    <div>
+      <h3>Processed Audio</h3>
+      <audio id="processedAudio" controls></audio>
+    </div>
+
+    <div class="audio-container">
+      <label for="threshold">Threshold (dB):</label>
+      <input type="range" id="threshold" min="-60" max="0" value="-20" step="1">
+      <span id="thresholdValue">-20 dB</span>
+
+      <label for="ratio">Ratio:</label>
+      <input type="range" id="ratio" min="1" max="20" value="4" step="0.1">
+      <span id="ratioValue">4:1</span>
+
+      <label for="attack">Attack (ms):</label>
+      <input type="range" id="attack" min="1" max="100" value="10" step="1">
+      <span id="attackValue">10 ms</span>
+
+      <label for="release">Release (ms):</label>
+      <input type="range" id="release" min="10" max="1000" value="100" step="10">
+      <span id="releaseValue">100 ms</span>
+    </div>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script type="module">
+    import init, { WasmAudioEngine } from '../../pkg/clearcast_core.js';
+
+    // DOM elements
+    const audioInput = document.getElementById('audioInput');
+    const processButton = document.getElementById('processButton');
+    const playOriginalButton = document.getElementById('playOriginal');
+    const playProcessedButton = document.getElementById('playProcessed');
+    const originalAudio = document.getElementById('originalAudio');
+    const processedAudio = document.getElementById('processedAudio');
+    const statusDiv = document.getElementById('status');
+    
+    // Compression parameters
+    const thresholdInput = document.getElementById('threshold');
+    const ratioInput = document.getElementById('ratio');
+    const attackInput = document.getElementById('attack');
+    const releaseInput = document.getElementById('release');
+    
+    // Display values
+    const thresholdValue = document.getElementById('thresholdValue');
+    const ratioValue = document.getElementById('ratioValue');
+    const attackValue = document.getElementById('attackValue');
+    const releaseValue = document.getElementById('releaseValue');
+    
+    // Update displayed values
+    thresholdInput.addEventListener('input', () => {
+      thresholdValue.textContent = `${thresholdInput.value} dB`;
+    });
+    
+    ratioInput.addEventListener('input', () => {
+      ratioValue.textContent = `${ratioInput.value}:1`;
+    });
+    
+    attackInput.addEventListener('input', () => {
+      attackValue.textContent = `${attackInput.value} ms`;
+    });
+    
+    releaseInput.addEventListener('input', () => {
+      releaseValue.textContent = `${releaseInput.value} ms`;
+    });
+    
+    let audioContext;
+    let audioBuffer = null;
+    let engine = null;
+    let isProcessing = false;
+
+    // Initialize the WebAssembly module
+    async function initialize() {
+      try {
+        showStatus('Initializing WebAssembly module...', 'info');
+        await init();
+        engine = new WasmAudioEngine();
+        showStatus('WebAssembly module initialized successfully!', 'success');
+        processButton.disabled = false;
+      } catch (error) {
+        showStatus(`Error initializing WebAssembly: ${error}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Handle file selection
+    audioInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        showStatus('Loading audio file...', 'info');
+        
+        // Create audio context if it doesn't exist
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // Read the file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Decode the audio data
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        // Create a URL for the original audio
+        const url = URL.createObjectURL(file);
+        originalAudio.src = url;
+        
+        // Enable playback controls
+        playOriginalButton.disabled = false;
+        processButton.disabled = false;
+        
+        showStatus('Audio file loaded successfully!', 'success');
+      } catch (error) {
+        showStatus(`Error loading audio file: ${error}`, 'error');
+        console.error(error);
+      }
+    });
+
+    // Process the audio
+    processButton.addEventListener('click', async () => {
+      if (!audioBuffer || !engine || isProcessing) return;
+      
+      try {
+        isProcessing = true;
+        processButton.disabled = true;
+        showStatus('Processing audio...', 'info');
+        
+        // Get the first channel (mono)
+        const channelData = audioBuffer.getChannelData(0);
+        
+        // Process with ClearCast
+        const output = engine.processBuffer(channelData);
+        
+        // Apply compression
+        const compressed = engine.compress(
+          output,
+          parseFloat(thresholdInput.value),
+          parseFloat(ratioInput.value),
+          parseFloat(attackInput.value),
+          parseFloat(releaseInput.value)
+        );
+        
+        // Create a new audio buffer for the processed audio
+        const processedBuffer = audioContext.createBuffer(
+          1, // Number of channels
+          compressed.length,
+          audioContext.sampleRate
+        );
+        
+        // Copy the processed data to the new buffer
+        const outputChannel = processedBuffer.getChannelData(0);
+        outputChannel.set(new Float32Array(compressed));
+        
+        // Create a WAV file from the processed buffer
+        const wavBlob = bufferToWav(processedBuffer);
+        const url = URL.createObjectURL(wavBlob);
+        
+        // Set the source of the processed audio element
+        processedAudio.src = url;
+        
+        // Enable playback of processed audio
+        playProcessedButton.disabled = false;
+        
+        showStatus('Audio processing complete!', 'success');
+      } catch (error) {
+        showStatus(`Error processing audio: ${error}`, 'error');
+        console.error(error);
+      } finally {
+        isProcessing = false;
+        processButton.disabled = false;
+      }
+    });
+    
+    // Play the original audio
+    playOriginalButton.addEventListener('click', () => {
+      if (originalAudio.paused) {
+        originalAudio.play();
+        playOriginalButton.textContent = 'Pause Original';
+      } else {
+        originalAudio.pause();
+        playOriginalButton.textContent = 'Play Original';
+      }
+    });
+    
+    // Play the processed audio
+    playProcessedButton.addEventListener('click', () => {
+      if (processedAudio.paused) {
+        processedAudio.play();
+        playProcessedButton.textContent = 'Pause Processed';
+      } else {
+        processedAudio.pause();
+        playProcessedButton.textContent = 'Play Processed';
+      }
+    });
+    
+    // Helper function to show status messages
+    function showStatus(message, type = 'info') {
+      statusDiv.textContent = message;
+      statusDiv.className = 'status';
+      if (type === 'success') {
+        statusDiv.classList.add('success');
+      } else if (type === 'error') {
+        statusDiv.classList.add('error');
+      }
+    }
+    
+    // Helper function to convert AudioBuffer to WAV
+    function bufferToWav(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const format = 3; // 32-bit float
+      const bitDepth = 32;
+      
+      let bytesPerSample = bitDepth / 8;
+      let blockAlign = numChannels * bytesPerSample;
+      
+      // RIFF chunk descriptor
+      let bufferSize = 44;
+      
+      // Data chunk
+      const dataChunkSize = buffer.length * numChannels * bytesPerSample;
+      bufferSize += dataChunkSize;
+      
+      const arrayBuffer = new ArrayBuffer(bufferSize);
+      const view = new DataView(arrayBuffer);
+      
+      // Write RIFF identifier
+      writeString(view, 0, 'RIFF');
+      // Write file length (file length - 8 bytes)
+      view.setUint32(4, 36 + dataChunkSize, true);
+      // Write WAVE identifier
+      writeString(view, 8, 'WAVE');
+      // Write format chunk identifier
+      writeString(view, 12, 'fmt ');
+      // Write format chunk length
+      view.setUint32(16, 16, true);
+      // Write audio format (3 = float)
+      view.setUint16(20, format, true);
+      // Write number of channels
+      view.setUint16(22, numChannels, true);
+      // Write sample rate
+      view.setUint32(24, sampleRate, true);
+      // Write byte rate (sample rate * block align)
+      view.setUint32(28, sampleRate * blockAlign, true);
+      // Write block align (channel count * bytes per sample)
+      view.setUint16(32, blockAlign, true);
+      // Write bits per sample
+      view.setUint16(34, bitDepth, true);
+      // Write data chunk identifier
+      writeString(view, 36, 'data');
+      // Write data chunk length
+      view.setUint32(40, dataChunkSize, true);
+      
+      // Write the audio data
+      let offset = 44;
+      for (let i = 0; i < buffer.length; i++) {
+        for (let channel = 0; channel < numChannels; channel++) {
+          const sample = buffer.getChannelData(channel)[i];
+          view.setFloat32(offset, sample, true);
+          offset += 4;
+        }
+      }
+      
+      return new Blob([view], { type: 'audio/wav' });
+    }
+    
+    // Helper function to write a string to a DataView
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+    
+    // Initialize the application
+    initialize();
+  </script>
+</body>
+</html>

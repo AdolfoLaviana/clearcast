@@ -1,0 +1,48 @@
+{
+  "name": "clearcast-core",
+  "version": "0.1.0",
+  "description": "Core audio processing library for ClearCast with WebAssembly bindings",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "scripts": {
+    "build:wasm": "wasm-pack build --target web --out-dir ../pkg --out-name clearcast-core -- --features wasm",
+    "build:ts": "tsc",
+    "build": "npm run build:wasm && npm run build:ts",
+    "prepublishOnly": "npm run build",
+    "test": "cargo test --features wasm && wasm-pack test --node"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/clearcast.git",
+    "directory": "clearcast-core"
+  },
+  "keywords": [
+    "audio",
+    "processing",
+    "wasm",
+    "noise-reduction",
+    "normalization",
+    "compression"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT OR Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/yourusername/clearcast/issues"
+  },
+  "homepage": "https://github.com/yourusername/clearcast#readme",
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/web": "^0.0.0",
+    "http-server": "^14.1.1",
+    "typescript": "^5.0.0",
+    "wasm-pack": "^0.12.0"
+  },
+  "dependencies": {
+    "@types/web": "^0.0.0"
+  },
+  "sideEffects": false
+}
