@@ -106,6 +106,7 @@ jobs:
       
       - name: Release Please
         uses: google-github-actions/release-please-action@v3
+        id: release
         with:
           release-type: rust
           package-name: clearcast-core
@@ -129,16 +130,6 @@ jobs:
               {"type":"test", "section":"Tests"},
               {"type":"build", "section":"Build System"}
             ]
-    permissions:
-      contents: write
-      pull-requests: write
-    if: github.event_name != 'pull_request'
-    steps:
-      - uses: google-github-actions/release-please-action@v3
-        id: release
-        with:
-          release-type: rust
-          package-name: clearcast-core
           # Solo crear releases desde main
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
