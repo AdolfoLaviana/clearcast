@@ -19,10 +19,12 @@ pub mod engine;
 pub mod filters;
 pub mod utils;
 pub mod effects;
+pub mod processor;
 
 /// Re-export the main audio processing engine and error type
 pub use engine::{AudioEngine, AudioProcessingError};
 pub use effects::{AudioEffect, Delay};
+pub use processor::ClearCastProcessor;
 
 // Función auxiliar para registrar errores en la consola de JavaScript
 #[cfg(feature = "wasm")]

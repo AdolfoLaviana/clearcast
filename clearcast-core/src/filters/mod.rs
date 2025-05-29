@@ -1,8 +1,14 @@
 //! Audio filters for ClearCast
 
 pub mod compressor;
+pub mod equalizer;
+pub mod wiener_filter;
+pub mod multiband;
 
 pub use compressor::compress_rms;
+pub use equalizer::{parametric_eq, Band, ParametricEQ};
+pub use multiband::{MultibandCompressor, BandParams};
+pub use wiener_filter::{reduce_noise_wiener, estimate_noise_profile};
 
 /// Applies a simple gain to the audio signal
 /// 

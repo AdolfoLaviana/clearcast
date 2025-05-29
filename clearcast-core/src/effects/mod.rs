@@ -27,7 +27,13 @@
 //! ```
 
 mod delay;
+mod soft_limiter;
+
 pub use delay::Delay;
+pub use soft_limiter::SoftLimiter;
+
+mod normalize;
+pub use normalize::normalize_rms;
 
 /// Interfaz base para todos los efectos de audio
 ///
